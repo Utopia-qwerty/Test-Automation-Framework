@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "test-automation-framework"
 version = "0.2.0"
@@ -30,4 +34,20 @@ dev = [
     "pytest-xdist>=3.6.1",
     "filelock>=3.16.0",
     "locust>=2.32.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "base*",
+    "common*",
+    "conf*",
+    "data*",
+    "testcase*",
+]
+exclude = [
+    "api_server*",
+    "report*",
+    "logs*",
+    "tools*",
 ]
