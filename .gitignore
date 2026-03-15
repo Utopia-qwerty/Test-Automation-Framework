@@ -1,6 +1,32 @@
 
+# Python
 *.pyc
-/common/__pycache__
-/.idea
-*.pyc
-/report/temp
+*.pyo
+__pycache__/
+
+# IDE
+.idea/
+.vscode/
+
+# 虚拟环境
+.venv/
+venv/
+
+# uv
+.python-version
+uv.lock
+
+# 测试报告临时文件
+report/temp/
+report/allureReport/
+report/tmreport/
+report/trend_data.json
+report/results.xml
+
+# allure 环境文件（运行时生成）
+environment.xml
+extract.yaml
+testcase/extract.yaml
+
+# 日志
+logs/

@@ -9,5 +9,5 @@
       data:
         user_id: 123839387391912
       validation:
-        - contains: { 'msg': '查询成功' }
-        - eq: { 'msg_code': 200 }
+        - contains: { "msg": "查询成功" }
+        - eq: { "msg_code": 200 } # 故意填错误值，用于触发AI分析功能测试

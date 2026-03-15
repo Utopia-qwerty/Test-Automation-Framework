@@ -14,10 +14,11 @@ class SendEmail(object):
     """构建邮件主题、正文、附件"""
 
     def __init__(
-            self,
-            host=conf.get_section_for_data('EMAIL', 'host'),
-            user=conf.get_section_for_data('EMAIL', 'user'),
-            passwd=conf.get_section_for_data('EMAIL', 'passwd')):
+        self,
+        host=conf.get_section_for_data("EMAIL", "host"),
+        user=conf.get_section_for_data("EMAIL", "user"),
+        passwd=conf.get_section_for_data("EMAIL", "passwd"),
+    ):
         self.__host = host
         self.__user = user
         self.__passwd = passwd
@@ -30,26 +31,40 @@ class SendEmail(object):
         @param email_content: 邮件正文内容
         @return:
         """
-        user = 'liaison officer' + '<' + self.__user + '>'
+        user = "liaison officer" + "<" + self.__user + ">"
         # 收件人
         if addressee is None:
-            addressee = conf.get_section_for_data('EMAIL', 'addressee').split(';')
+            addressee = conf.get_section_for_data("EMAIL", "addressee").split(";")
         else:
-            addressee = addressee.split(';')
+            addressee = addressee.split(";")
         message = MIMEMultipart()
-        message['Subject'] = subject
-        message['From'] = user
-        message['To'] = ';'.join([re.search(r'(.*)(@)', emi).group(1) + "<" + emi + ">" for emi in addressee])
+        message["Subject"] = subject
+        message["From"] = user
+        valid_addressee = [
+            emi.strip() for emi in addressee if re.search(r".+@.+\..+", emi.strip())
+        ]
+        if not valid_addressee:
+            logs.error(
+                "[SendEmail] 收件人列表为空或地址无效，请检查 config.ini [EMAIL] addressee 配置"
+            )
+            return
+        message["To"] = ";".join(
+            [
+                re.search(r"(.*)(@)", emi).group(1) + "<" + emi + ">"
+                for emi in valid_addressee
+            ]
+        )
+        addressee = valid_addressee
 
         # 邮件正文
-        text = MIMEText(email_content, _subtype='plain', _charset='utf-8')
+        text = MIMEText(email_content, _subtype="plain", _charset="utf-8")
         message.attach(text)
 
         if atta_file is not None:
             # 附件
-            atta = MIMEApplication(open(atta_file, 'rb').read())
-            atta['Content-Type'] = 'application/octet-stream'
-            atta['Content-Disposition'] = 'attachment; filename="testresult.xls"'
+            atta = MIMEApplication(open(atta_file, "rb").read())
+            atta["Content-Type"] = "application/octet-stream"
+            atta["Content-Disposition"] = 'attachment; filename="testresult.xls"'
             message.attach(atta)
 
         try:
@@ -57,17 +72,19 @@ class SendEmail(object):
             service.login(self.__user, self.__passwd)
             service.sendmail(user, addressee, message.as_string())
         except smtplib.SMTPConnectError as e:
-            logs.error('邮箱服务器连接失败！', e)
+            logs.error("邮箱服务器连接失败！", e)
         except smtplib.SMTPAuthenticationError as e:
-            logs.error('邮箱服务器认证错误,POP3/SMTP服务未开启,密码应填写授权码!', e)
+            logs.error("邮箱服务器认证错误,POP3/SMTP服务未开启,密码应填写授权码!", e)
         except smtplib.SMTPSenderRefused as e:
-            logs.error('发件人地址未经验证！', e)
+            logs.error("发件人地址未经验证！", e)
         except smtplib.SMTPDataError as e:
-            logs.error('发送的邮件内容包含了未被许可的信息，或被系统识别为垃圾邮件！', e)
+            logs.error(
+                "发送的邮件内容包含了未被许可的信息，或被系统识别为垃圾邮件！", e
+            )
         except Exception as e:
             logs.error(e)
         else:
-            logs.info('邮件发送成功!')
+            logs.info("邮件发送成功!")
             service.quit()
 
 
@@ -97,9 +114,20 @@ class BuildEmail(SendEmail):
         fail_result = "%.2f%%" % (fail_num / execute_case * 100)
         err_result = "%.2f%%" % (error_num / execute_case * 100)
         # 设置邮件主题、收件人、内容
-        subject = conf.get_section_for_data('EMAIL', 'subject')
-        addressee = conf.get_section_for_data('EMAIL', 'addressee').split(';')
-        content = "     ***项目接口测试，共测试接口%s个，通过%s个，失败%s个，错误%s个，未执行%s个，通过率%s，失败率%s，错误率%s。" \
-                  "详细测试结果请参见附件。" % (
-                      total, success_num, fail_num, error_num, notrun_num, pass_result, fail_result, err_result)
+        subject = conf.get_section_for_data("EMAIL", "subject")
+        addressee = conf.get_section_for_data("EMAIL", "addressee").split(";")
+        content = (
+            "     ***项目接口测试，共测试接口%s个，通过%s个，失败%s个，错误%s个，未执行%s个，通过率%s，失败率%s，错误率%s。"
+            "详细测试结果请参见附件。"
+            % (
+                total,
+                success_num,
+                fail_num,
+                error_num,
+                notrun_num,
+                pass_result,
+                fail_result,
+                err_result,
+            )
+        )
         self.build_content(addressee, subject, content, atta_file)

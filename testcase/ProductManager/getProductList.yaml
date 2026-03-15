@@ -4,7 +4,7 @@
     method: Get
     header:
       Content-Type: application/x-www-form-urlencoded;charset=UTF-8
-      token: ${get_extract_data(cookie)}
+      token: ${get_extract_data(token)}
   testCase:
     - case_name: 获取商品列表
       params:
@@ -12,7 +12,7 @@
         page: 1
         size: 20
       validation:
-        - contains: { 'error_code': '0000' }
+        - contains: { "error_code": "0000" }
       extract_list:
-#        token: '"token": "(.*?)"'
+        #        token: '"token": "(.*?)"'
         goodsId: $.goodsList[*].goodsId

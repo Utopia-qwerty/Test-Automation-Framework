@@ -1,10 +1,21 @@
 import yaml
 import traceback
 import os
+import threading
 
 from common.recordlog import logs
 from conf.operationConfig import OperationConfig
 from conf.setting import FILE_PATH
+
+# 进程内写锁，保证 pytest-xdist 同进程多线程的 extract.yaml 写入安全
+_extract_write_lock = threading.Lock()
+
+# 尝试加载跨进程文件锁（pytest-xdist 多进程场景）
+try:
+    from filelock import FileLock
+    _file_lock = FileLock(FILE_PATH['EXTRACT'] + '.lock')
+except ImportError:
+    _file_lock = None
 
 
 def get_testcase_yaml(file):
@@ -67,17 +78,15 @@ class ReadYamlData:
         file_path = FILE_PATH['EXTRACT']
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         try:
-            file = open(file_path, 'a', encoding='utf-8')
-            if isinstance(value, dict):
-                write_data = yaml.dump(value, allow_unicode=True, sort_keys=False)
-                file.write(write_data)
-            else:
-                logs.info('写入[extract.yaml]的数据必须为dict格式')
+            # 先获取进程内线程锁，再获取跨进程文件锁，防止 xdist 并发写入冲突
+            with _extract_write_lock:
+                if _file_lock is not None:
+                    with _file_lock:
+                        _do_write(file_path, value)
+                else:
+                    _do_write(file_path, value)
         except Exception:
             logs.error(str(traceback.format_exc()))
-        finally:
-            if file:
-                file.close()
 
     def clear_yaml_data(self):
         """
@@ -118,6 +127,15 @@ class ReadYamlData:
         :return:
         """
         pass
+
+
+def _do_write(file_path, value):
+    """实际执行 extract.yaml 追加写入的底层函数（调用方负责加锁）"""
+    with open(file_path, 'a', encoding='utf-8') as f:
+        if isinstance(value, dict):
+            f.write(yaml.dump(value, allow_unicode=True, sort_keys=False))
+        else:
+            logs.info('写入[extract.yaml]的数据必须为dict格式')
 
     def get_method(self):
         """

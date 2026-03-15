@@ -1,13 +1,12 @@
 [project]
 name = "test-automation-framework"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "企业级接口自动化测试框架，支持多渠道通知、趋势分析、AI 根因分析与用例生成"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "allure-pytest>=2.13.5",
     "clickhouse-sqlalchemy>=0.3.2",
-    "jenkins>=1.0.2",
     "jsonpath>=0.82.2",
     "pandas>=2.2.3",
     "paramiko",
@@ -20,4 +19,15 @@ dependencies = [
     "sqlalchemy>=2.0.36",
     "xlrd>=2.0.1",
     "xlutils>=2.0.0",
+    # 并发执行
+    "pytest-xdist>=3.6.1",
+    # extract.yaml 跨进程文件锁
+    "filelock>=3.16.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-xdist>=3.6.1",
+    "filelock>=3.16.0",
+    "locust>=2.32.0",
 ]

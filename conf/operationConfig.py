@@ -14,18 +14,18 @@ class OperationConfig:
     def __init__(self, filepath=None):
 
         if filepath is None:
-            self.__filepath = setting.FILE_PATH['CONFIG']
+            self.__filepath = setting.FILE_PATH["CONFIG"]
         else:
             self.__filepath = filepath
 
         self.conf = configparser.ConfigParser()
         try:
-            self.conf.read(self.__filepath, encoding='utf-8')
+            self.conf.read(self.__filepath, encoding="utf-8")
         except Exception as e:
             exc_type, exc_value, exc_obj = sys.exc_info()
             logs.error(str(traceback.print_exc(exc_obj)))
 
-        self.type = self.get_report_type('type')
+        self.type = self.get_report_type("type")
 
     def get_item_value(self, section_name):
         """
@@ -46,7 +46,7 @@ class OperationConfig:
             return values
         except Exception as e:
             logs.error(str(traceback.format_exc()))
-            return ''
+            return ""
 
     def write_config_data(self, section, option_key, option_value):
         """
@@ -62,7 +62,7 @@ class OperationConfig:
             self.conf.set(section, option_key, option_value)
         else:
             logs.info('"%s"值已存在，写入失败' % section)
-        with open(self.__filepath, 'w', encoding='utf-8') as f:
+        with open(self.__filepath, "w", encoding="utf-8") as f:
             self.conf.write(f)
 
     def get_section_mysql(self, option):
@@ -78,7 +78,7 @@ class OperationConfig:
         return self.get_section_for_data("MongoDB", option)
 
     def get_report_type(self, option):
-        return self.get_section_for_data('REPORT_TYPE', option)
+        return self.get_section_for_data("REPORT_TYPE", option)
 
     def get_section_ssh(self, option):
         return self.get_section_for_data("SSH", option)

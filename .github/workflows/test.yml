@@ -1,0 +1,259 @@
+name: API Automation Test
+
+on:
+  push:
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # 每天凌晨 2 点（UTC）定时全量回归
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      test_mark:
+        description: "按标签筛选用例，如 smoke / regression / p0，留空则全量执行"
+        required: false
+        default: ""
+      parallel:
+        description: "并发 worker 数量（auto 表示自动）"
+        required: false
+        default: "auto"
+      api_health_url:
+        description: "API 健康检查地址（同仓库 api_server 启动后用于探活）"
+        required: false
+        default: "http://127.0.0.1:8787/health"
+      api_server_start_cmd:
+        description: "可选：自定义启动命令（例如 uvicorn api_server.main:app --host 0.0.0.0 --port 8787）"
+        required: false
+        default: ""
+      deploy_enabled:
+        description: "是否在测试通过后执行部署"
+        required: false
+        default: false
+        type: boolean
+      deploy_host:
+        description: "部署主机（可选，留空则走 DEPLOY_HOST Secret）"
+        required: false
+        default: ""
+      deploy_path:
+        description: "部署目录（可选）"
+        required: false
+        default: "/opt/test-automation-framework"
+      deploy_script:
+        description: "部署脚本（可选）"
+        required: false
+        default: "./deploy.sh"
+
+jobs:
+  test:
+    name: Run API Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 拉取完整历史，用于 trend 分析
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install Java (for Allure CLI)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install Allure CLI
+        run: |
+          curl -o allure.tgz -L https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          tar -xzf allure.tgz
+          sudo mv allure-2.29.0 /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Restore trend history
+        uses: actions/cache@v4
+        with:
+          path: report/trend_data.json
+          key: trend-${{ github.ref_name }}
+          restore-keys: |
+            trend-
+
+      - name: Start local api_server
+        run: |
+          if [ ! -d "api_server" ]; then
+            echo "api_server directory not found. Skip local server startup."
+            exit 0
+          fi
+
+          CUSTOM_CMD="${{ github.event.inputs.api_server_start_cmd }}"
+          if [ -n "$CUSTOM_CMD" ]; then
+            echo "Start api_server with custom command: $CUSTOM_CMD"
+            nohup bash -lc "$CUSTOM_CMD" > /tmp/api_server.log 2>&1 &
+            exit 0
+          fi
+
+          if [ -f "api_server/docker-compose.yml" ] || [ -f "api_server/docker-compose.yaml" ] || [ -f "api_server/compose.yml" ] || [ -f "api_server/compose.yaml" ]; then
+            echo "Detected docker compose in api_server, starting services..."
+            cd api_server
+            docker compose up -d --build
+            exit 0
+          fi
+
+          if [ -f "api_server/requirements.txt" ]; then
+            python -m pip install -r api_server/requirements.txt
+          fi
+
+          if [ -f "api_server/run.py" ]; then
+            nohup python api_server/run.py > /tmp/api_server.log 2>&1 &
+          elif [ -f "api_server/app.py" ]; then
+            nohup python api_server/app.py > /tmp/api_server.log 2>&1 &
+          elif [ -f "api_server/main.py" ]; then
+            nohup python api_server/main.py > /tmp/api_server.log 2>&1 &
+          else
+            echo "Cannot infer how to start api_server. Please provide workflow input api_server_start_cmd." >&2
+            exit 1
+          fi
+
+      - name: Wait for local API ready
+        run: |
+          HEALTH_URL="${{ github.event.inputs.api_health_url || 'http://127.0.0.1:8787/health' }}"
+          echo "Waiting API health: $HEALTH_URL"
+          for i in $(seq 1 60); do
+            if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API health check timeout: $HEALTH_URL" >&2
+          if [ -f /tmp/api_server.log ]; then
+            echo "===== api_server.log (tail) ====="
+            tail -n 200 /tmp/api_server.log || true
+          fi
+          exit 1
+
+      - name: Run tests
+        env:
+          # 从 Secrets 注入敏感配置，避免硬编码
+          API_HOST: ${{ secrets.API_HOST }}
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          DD_ACCESS_TOKEN: ${{ secrets.DD_ACCESS_TOKEN }}
+          DD_SECRET: ${{ secrets.DD_SECRET }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          NOTIFY_ON_FAILURE_ONLY: "false"
+        run: |
+          # 若未配置 API_HOST Secret，默认走同机启动的 api_server
+          if [ -z "$API_HOST" ]; then
+            export API_HOST="http://127.0.0.1:8787"
+          fi
+          MARK="${{ github.event.inputs.test_mark }}"
+          WORKERS="${{ github.event.inputs.parallel || 'auto' }}"
+          ARGS="-v --alluredir=./report/temp --clean-alluredir --junitxml=./report/results.xml -n ${WORKERS}"
+          if [ -n "$MARK" ]; then
+            ARGS="$ARGS -m $MARK"
+          fi
+          python -m pytest $ARGS ./testcase
+
+      - name: Generate Allure HTML report
+        if: always()
+        run: |
+          cp environment.xml report/temp/ || true
+          allure generate report/temp -o report/allureReport --clean
+
+      - name: Publish Allure report to GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./report/allureReport
+          destination_dir: allure-report
+
+      - name: Upload Allure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{ github.run_number }}
+          path: report/allureReport
+          retention-days: 30
+
+      - name: Upload JUnit XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results-${{ github.run_number }}
+          path: report/results.xml
+          retention-days: 30
+
+      - name: Save trend data
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: report/trend_data.json
+          key: trend-${{ github.ref_name }}
+
+      - name: Publish test summary
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: report/results.xml
+          comment_mode: always
+
+  deploy:
+    name: Deploy Application
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_enabled == 'true'
+    steps:
+      - name: Resolve deploy target
+        id: target
+        run: |
+          HOST="${{ github.event.inputs.deploy_host }}"
+          if [ -z "$HOST" ]; then
+            HOST="${{ secrets.DEPLOY_HOST }}"
+          fi
+          if [ -z "$HOST" ]; then
+            echo "DEPLOY_HOST is empty. Please provide workflow input or repository secret." >&2
+            exit 1
+          fi
+          echo "host=$HOST" >> "$GITHUB_OUTPUT"
+          echo "path=${{ github.event.inputs.deploy_path }}" >> "$GITHUB_OUTPUT"
+          echo "script=${{ github.event.inputs.deploy_script }}" >> "$GITHUB_OUTPUT"
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ steps.target.outputs.host }}" >> ~/.ssh/known_hosts
+
+      - name: Remote deploy
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          if [ -z "$DEPLOY_USER" ]; then
+            echo "DEPLOY_USER secret is required." >&2
+            exit 1
+          fi
+          ssh "$DEPLOY_USER@${{ steps.target.outputs.host }}" \
+            "cd '${{ steps.target.outputs.path }}' && ${{ steps.target.outputs.script }}"
