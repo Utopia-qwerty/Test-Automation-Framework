@@ -1,0 +1,14 @@
+INFO - 2026-03-16 06:48:36,568 - conftest.py:20 -[conftest:start_test_and_end] - -------------接口测试开始--------------
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:135 -[sendrequest:run_main] - 接口名称：新增用户
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:136 -[sendrequest:run_main] - 请求地址：http://127.0.0.1:8787/dar/user/addUser
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:137 -[sendrequest:run_main] - 请求方式：POST
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:138 -[sendrequest:run_main] - 测试用例名称：无效新增·缺少token
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:139 -[sendrequest:run_main] - 请求头：{'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
+INFO - 2026-03-16 06:48:36,571 - sendrequest.py:140 -[sendrequest:run_main] - Cookie：None
+INFO - 2026-03-16 06:48:36,572 - sendrequest.py:144 -[sendrequest:run_main] - 请求参数：{'data': {'username': 'testadduser', 'password': 'tset6789890', 'role_id': 123456789, 'dates': '2023-12-31', 'phone': 13800000000, 'token': None}}
+INFO - 2026-03-16 06:48:36,573 - sendrequest.py:108 -[sendrequest:send_request] - 接口返回信息：{"msg":"\u65b0\u589e\u5931\u8d25","msg_code":9001}
+
+INFO - 2026-03-16 06:48:36,573 - assertions.py:241 -[assertions:assert_result] - yaml文件预期结果：[{'contains': {'status_code': 200}}, {'contains': {'msg': '新增失败'}}]
+INFO - 2026-03-16 06:48:36,574 - assertions.py:53 -[assertions:contains_assert] - 字符串包含断言成功：预期结果【新增失败】,实际结果【新增失败】
+INFO - 2026-03-16 06:48:36,574 - assertions.py:271 -[assertions:assert_result] - 测试成功
+INFO - 2026-03-16 06:48:36,575 - conftest.py:22 -[conftest:start_test_and_end] - -------------接口测试结束--------------

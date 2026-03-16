@@ -1,8 +1,0 @@
-{
-    "error_code": null,
-    "msg": "登录成功",
-    "msg_code": 200,
-    "orgId": "4140913758110176843",
-    "token": "2a58C23A0aB9E43FEEd1A839AA4A0",
-    "userId": "9405310475898965869"
-}

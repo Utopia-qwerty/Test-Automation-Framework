@@ -1,3 +1,0 @@
-INFO     common.recordlog:conftest.py:20 -------------接口测试开始--------------
-ERROR    common.recordlog:readyaml.py:121 【extract.yaml】没有找到：goodsId,--'goodsId'
-INFO     common.recordlog:conftest.py:22 -------------接口测试结束--------------

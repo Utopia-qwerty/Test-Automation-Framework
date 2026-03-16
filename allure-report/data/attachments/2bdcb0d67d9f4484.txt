@@ -1,9 +1,0 @@
-{
-    "crateTime": "2026-03-16 06:38:37",
-    "error": "",
-    "error_code": "0000",
-    "message": "提交订单成功",
-    "orderNumber": "157926495920383405970",
-    "translate_language": "zh-CN",
-    "userId": "9405310475898965869"
-}
