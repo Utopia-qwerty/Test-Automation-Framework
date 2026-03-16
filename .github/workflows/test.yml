@@ -120,7 +120,14 @@ jobs:
             nohup python api_server/app.py > /tmp/api_server.log 2>&1 &
           elif [ -f "api_server/main.py" ]; then
             nohup python api_server/main.py > /tmp/api_server.log 2>&1 &
+          elif [ -f "api_server/base/flask_service.py" ]; then
+            # 当前 mock 服务入口
+            python -m pip install flask flask-jwt-extended faker pymysql
+            nohup python api_server/base/flask_service.py > /tmp/api_server.log 2>&1 &
           else
+            echo "api_server directory exists, but no known entrypoint found."
+            echo "Detected files under api_server:"
+            find api_server -maxdepth 2 -type f | sort || true
             echo "Cannot infer how to start api_server. Please provide workflow input api_server_start_cmd." >&2
             exit 1
           fi
