@@ -8,7 +8,7 @@ from common.connection import ConnectMysql
 
 
 class Assertions:
-    """"
+    """ "
     接口断言模式，支持
     1）响应文本字符串包含模式断言
     2）响应结果相等断言
@@ -32,22 +32,39 @@ class Assertions:
             if assert_key == "status_code":
                 if assert_value != status_code:
                     flag += 1
-                    allure.attach(f"预期结果：{assert_value}\n实际结果：{status_code}", '响应代码断言结果:失败',
-                                  attachment_type=allure.attachment_type.TEXT)
-                    logs.error("contains断言失败：接口返回码【%s】不等于【%s】" % (status_code, assert_value))
+                    allure.attach(
+                        f"预期结果：{assert_value}\n实际结果：{status_code}",
+                        "响应代码断言结果:失败",
+                        attachment_type=allure.attachment_type.TEXT,
+                    )
+                    logs.error(
+                        "contains断言失败：接口返回码【%s】不等于【%s】"
+                        % (status_code, assert_value)
+                    )
             else:
                 resp_list = jsonpath.jsonpath(response, "$..%s" % assert_key)
                 if isinstance(resp_list[0], str):
-                    resp_list = ''.join(resp_list)
+                    resp_list = "".join(resp_list)
                 if resp_list:
-                    assert_value = None if assert_value.upper() == 'NONE' else assert_value
+                    assert_value = (
+                        None if assert_value.upper() == "NONE" else assert_value
+                    )
                     if assert_value in resp_list:
-                        logs.info("字符串包含断言成功：预期结果【%s】,实际结果【%s】" % (assert_value, resp_list))
+                        logs.info(
+                            "字符串包含断言成功：预期结果【%s】,实际结果【%s】"
+                            % (assert_value, resp_list)
+                        )
                     else:
                         flag = flag + 1
-                        allure.attach(f"预期结果：{assert_value}\n实际结果：{resp_list}", '响应文本断言结果：失败',
-                                      attachment_type=allure.attachment_type.TEXT)
-                        logs.error("响应文本断言失败：预期结果为【%s】,实际结果为【%s】" % (assert_value, resp_list))
+                        allure.attach(
+                            f"预期结果：{assert_value}\n实际结果：{resp_list}",
+                            "响应文本断言结果：失败",
+                            attachment_type=allure.attachment_type.TEXT,
+                        )
+                        logs.error(
+                            "响应文本断言失败：预期结果为【%s】,实际结果为【%s】"
+                            % (assert_value, resp_list)
+                        )
         return flag
 
     def equal_assert(self, expected_results, actual_results, statuc_code=None):
@@ -60,21 +77,48 @@ class Assertions:
         flag = 0
         if isinstance(actual_results, dict) and isinstance(expected_results, dict):
             # 找出实际结果与预期结果共同的key
-            common_keys = list(expected_results.keys() & actual_results.keys())[0]
+            common_key_list = list(expected_results.keys() & actual_results.keys())
+            if not common_key_list:
+                flag += 1
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{actual_results}",
+                    "相等断言结果：失败（无共同字段）",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
+                logs.error(
+                    f"相等断言失败：预期字段 {list(expected_results.keys())} 与实际字段 {list(actual_results.keys())} 无交集"
+                )
+                return flag
+
+            common_keys = common_key_list[0]
             # 根据相同的key去实际结果中获取，并重新生成一个实际结果的字典
             new_actual_results = {common_keys: actual_results[common_keys]}
             eq_assert = operator.eq(new_actual_results, expected_results)
             if eq_assert:
-                logs.info(f"相等断言成功：接口实际结果：{new_actual_results}，等于预期结果：" + str(expected_results))
-                allure.attach(f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}", '相等断言结果：成功',
-                              attachment_type=allure.attachment_type.TEXT)
+                logs.info(
+                    f"相等断言成功：接口实际结果：{new_actual_results}，等于预期结果："
+                    + str(expected_results)
+                )
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}",
+                    "相等断言结果：成功",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
             else:
                 flag += 1
-                logs.error(f"相等断言失败：接口实际结果{new_actual_results}，不等于预期结果：" + str(expected_results))
-                allure.attach(f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}", '相等断言结果：失败',
-                              attachment_type=allure.attachment_type.TEXT)
+                logs.error(
+                    f"相等断言失败：接口实际结果{new_actual_results}，不等于预期结果："
+                    + str(expected_results)
+                )
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}",
+                    "相等断言结果：失败",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
         else:
-            raise TypeError('相等断言--类型错误，预期结果和接口实际响应结果必须为字典类型！')
+            raise TypeError(
+                "相等断言--类型错误，预期结果和接口实际响应结果必须为字典类型！"
+            )
         return flag
 
     def not_equal_assert(self, expected_results, actual_results, statuc_code=None):
@@ -87,21 +131,48 @@ class Assertions:
         flag = 0
         if isinstance(actual_results, dict) and isinstance(expected_results, dict):
             # 找出实际结果与预期结果共同的key
-            common_keys = list(expected_results.keys() & actual_results.keys())[0]
+            common_key_list = list(expected_results.keys() & actual_results.keys())
+            if not common_key_list:
+                flag += 1
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{actual_results}",
+                    "不相等断言结果：失败（无共同字段）",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
+                logs.error(
+                    f"不相等断言失败：预期字段 {list(expected_results.keys())} 与实际字段 {list(actual_results.keys())} 无交集"
+                )
+                return flag
+
+            common_keys = common_key_list[0]
             # 根据相同的key去实际结果中获取，并重新生成一个实际结果的字典
             new_actual_results = {common_keys: actual_results[common_keys]}
             eq_assert = operator.ne(new_actual_results, expected_results)
             if eq_assert:
-                logs.info(f"不相等断言成功：接口实际结果：{new_actual_results}，不等于预期结果：" + str(expected_results))
-                allure.attach(f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}", '不相等断言结果：成功',
-                              attachment_type=allure.attachment_type.TEXT)
+                logs.info(
+                    f"不相等断言成功：接口实际结果：{new_actual_results}，不等于预期结果："
+                    + str(expected_results)
+                )
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}",
+                    "不相等断言结果：成功",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
             else:
                 flag += 1
-                logs.error(f"不相等断言失败：接口实际结果{new_actual_results}，等于预期结果：" + str(expected_results))
-                allure.attach(f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}", '不相等断言结果：失败',
-                              attachment_type=allure.attachment_type.TEXT)
+                logs.error(
+                    f"不相等断言失败：接口实际结果{new_actual_results}，等于预期结果："
+                    + str(expected_results)
+                )
+                allure.attach(
+                    f"预期结果：{str(expected_results)}\n实际结果：{new_actual_results}",
+                    "不相等断言结果：失败",
+                    attachment_type=allure.attachment_type.TEXT,
+                )
         else:
-            raise TypeError('不相等断言--类型错误，预期结果和接口实际响应结果必须为字典类型！')
+            raise TypeError(
+                "不相等断言--类型错误，预期结果和接口实际响应结果必须为字典类型！"
+            )
         return flag
 
     def assert_response_any(self, actual_results, expected_results):
@@ -138,7 +209,7 @@ class Assertions:
             assert res_time < exp_time
             return True
         except Exception as e:
-            logs.error('接口响应时间[%ss]大于预期时间[%ss]' % (res_time, exp_time))
+            logs.error("接口响应时间[%ss]大于预期时间[%ss]" % (res_time, exp_time))
             raise
 
     def assert_mysql_data(self, expected_results):
@@ -178,20 +249,22 @@ class Assertions:
                     elif key == "eq":
                         flag = self.equal_assert(value, response)
                         all_flag = all_flag + flag
-                    elif key == 'ne':
+                    elif key == "ne":
                         flag = self.not_equal_assert(value, response)
                         all_flag = all_flag + flag
-                    elif key == 'rv':
-                        flag = self.assert_response_any(actual_results=response, expected_results=value)
+                    elif key == "rv":
+                        flag = self.assert_response_any(
+                            actual_results=response, expected_results=value
+                        )
                         all_flag = all_flag + flag
-                    elif key == 'db':
+                    elif key == "db":
                         flag = self.assert_mysql_data(value)
                         all_flag = all_flag + flag
                     else:
                         logs.error("不支持此种断言方式")
 
         except Exception as exceptions:
-            logs.error('接口断言异常，请检查yaml预期结果值是否正确填写!')
+            logs.error("接口断言异常，请检查yaml预期结果值是否正确填写!")
             raise exceptions
 
         if all_flag == 0:

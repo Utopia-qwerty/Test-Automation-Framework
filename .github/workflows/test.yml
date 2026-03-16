@@ -14,7 +14,7 @@ on:
       parallel:
         description: "并发 worker 数量（auto 表示自动）"
         required: false
-        default: "auto"
+        default: "0"
       api_health_url:
         description: "API 健康检查地址（同仓库 api_server 启动后用于探活）"
         required: false
@@ -183,10 +183,13 @@ jobs:
             export API_HOST="http://127.0.0.1:8787"
           fi
           MARK="${{ github.event.inputs.test_mark }}"
-          WORKERS="${{ github.event.inputs.parallel || 'auto' }}"
-          ARGS="-v --alluredir=./report/temp --clean-alluredir --junitxml=./report/results.xml -n ${WORKERS}"
+          WORKERS="${{ github.event.inputs.parallel || '0' }}"
+          ARGS="-v --alluredir=./report/temp --clean-alluredir --junitxml=./report/results.xml"
           if [ -n "$MARK" ]; then
             ARGS="$ARGS -m $MARK"
+          fi
+          if [ "$WORKERS" != "0" ]; then
+            ARGS="$ARGS -n ${WORKERS} --dist=loadfile"
           fi
           python -m pytest $ARGS ./testcase
 
