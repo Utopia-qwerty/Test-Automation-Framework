@@ -17,8 +17,8 @@ on:
         default: "auto"
       api_health_url:
         description: "API 健康检查地址（同仓库 api_server 启动后用于探活）"
-        required: true
-        default: "http://127.0.0.1:8787/health"
+        required: false
+        default: "http://127.0.0.1:8787/index"
       api_server_start_cmd:
         description: "可选：自定义启动命令（例如 uvicorn api_server.main:app --host 0.0.0.0 --port 8787）"
         required: false
@@ -134,16 +134,30 @@ jobs:
 
       - name: Wait for local API ready
         run: |
-          HEALTH_URL="${{ github.event.inputs.api_health_url || 'http://127.0.0.1:8787/health' }}"
-          echo "Waiting API health: $HEALTH_URL"
+          HEALTH_URL="${{ github.event.inputs.api_health_url || 'http://127.0.0.1:8787/index' }}"
+          FALLBACK_URLS=(
+            "$HEALTH_URL"
+            "http://127.0.0.1:8787/index"
+            "http://127.0.0.1:8787/login"
+            "http://127.0.0.1:8787/"
+          )
+
+          echo "Waiting API ready, candidate URLs: ${FALLBACK_URLS[*]}"
           for i in $(seq 1 60); do
-            if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-              echo "API is ready"
-              exit 0
-            fi
+            for url in "${FALLBACK_URLS[@]}"; do
+              if curl -fsS "$url" >/dev/null 2>&1; then
+                echo "API is ready via: $url"
+                exit 0
+              fi
+            done
             sleep 2
           done
-          echo "API health check timeout: $HEALTH_URL" >&2
+
+          echo "API health check timeout. Tried: ${FALLBACK_URLS[*]}" >&2
+          echo "===== process check ====="
+          pgrep -a -f "flask_service|python.*api_server|python.*8787" || true
+          echo "===== port check ====="
+          ss -lntp | grep 8787 || true
           if [ -f /tmp/api_server.log ]; then
             echo "===== api_server.log (tail) ====="
             tail -n 200 /tmp/api_server.log || true
