@@ -1,7 +1,0 @@
-{
-    "createTime": "2026-03-16 06:57:50",
-    "error": "",
-    "error_code": "0000",
-    "message": "订单支付成功",
-    "translate_language": "zh-CN"
-}
