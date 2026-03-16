@@ -1,0 +1,14 @@
+INFO - 2026-03-16 06:38:38,151 - conftest.py:20 -[conftest:start_test_and_end] - -------------接口测试开始--------------
+INFO - 2026-03-16 06:38:38,155 - sendrequest.py:135 -[sendrequest:run_main] - 接口名称：删除用户
+INFO - 2026-03-16 06:38:38,155 - sendrequest.py:136 -[sendrequest:run_main] - 请求地址：http://127.0.0.1:8787/dar/user/deleteUser
+INFO - 2026-03-16 06:38:38,156 - sendrequest.py:137 -[sendrequest:run_main] - 请求方式：POST
+INFO - 2026-03-16 06:38:38,156 - sendrequest.py:138 -[sendrequest:run_main] - 测试用例名称：无效删除用户·userid为空
+INFO - 2026-03-16 06:38:38,156 - sendrequest.py:139 -[sendrequest:run_main] - 请求头：{'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
+INFO - 2026-03-16 06:38:38,156 - sendrequest.py:140 -[sendrequest:run_main] - Cookie：None
+INFO - 2026-03-16 06:38:38,156 - sendrequest.py:144 -[sendrequest:run_main] - 请求参数：{'data': {'user_id': 1238393873922}}
+INFO - 2026-03-16 06:38:38,158 - sendrequest.py:108 -[sendrequest:send_request] - 接口返回信息：{"msg":"\u5220\u9664\u5931\u8d25\uff0c\u7528\u6237id\u4e0d\u5b58\u5728!","msg_code":9001}
+
+INFO - 2026-03-16 06:38:38,159 - assertions.py:170 -[assertions:assert_result] - yaml文件预期结果：[{'contains': {'msg': '删除失败'}}]
+INFO - 2026-03-16 06:38:38,159 - assertions.py:45 -[assertions:contains_assert] - 字符串包含断言成功：预期结果【删除失败】,实际结果【删除失败，用户id不存在!】
+INFO - 2026-03-16 06:38:38,159 - assertions.py:198 -[assertions:assert_result] - 测试成功
+INFO - 2026-03-16 06:38:38,160 - conftest.py:22 -[conftest:start_test_and_end] - -------------接口测试结束--------------

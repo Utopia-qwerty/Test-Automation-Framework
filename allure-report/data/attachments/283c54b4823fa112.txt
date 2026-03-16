@@ -1,0 +1,15 @@
+INFO - 2026-03-16 06:38:38,146 - conftest.py:20 -[conftest:start_test_and_end] - -------------接口测试开始--------------
+INFO - 2026-03-16 06:38:38,163 - sendrequest.py:135 -[sendrequest:run_main] - 接口名称：订单支付
+INFO - 2026-03-16 06:38:38,163 - sendrequest.py:136 -[sendrequest:run_main] - 请求地址：http://127.0.0.1:8787/coupApply/cms/orderPay
+INFO - 2026-03-16 06:38:38,164 - sendrequest.py:137 -[sendrequest:run_main] - 请求方式：post
+INFO - 2026-03-16 06:38:38,164 - sendrequest.py:138 -[sendrequest:run_main] - 测试用例名称：订单支付
+INFO - 2026-03-16 06:38:38,164 - sendrequest.py:139 -[sendrequest:run_main] - 请求头：{'Content-Type': 'application/json;charset=UTF-8'}
+INFO - 2026-03-16 06:38:38,164 - sendrequest.py:140 -[sendrequest:run_main] - Cookie：None
+INFO - 2026-03-16 06:38:38,164 - sendrequest.py:147 -[sendrequest:run_main] - 请求参数：{'json': {'orderNumber': '157926495920383405970', 'userId': '9405310475898965869', 'timeStamp': '1773643118'}}
+INFO - 2026-03-16 06:38:38,167 - sendrequest.py:108 -[sendrequest:send_request] - 接口返回信息：{"createTime":"2026-03-16 06:38:38","error":"","error_code":"0000","message":"\u8ba2\u5355\u652f\u4ed8\u6210\u529f","translate_language":"zh-CN"}
+
+INFO - 2026-03-16 06:38:38,167 - assertions.py:170 -[assertions:assert_result] - yaml文件预期结果：[{'contains': {'message': '订单支付成功'}}, {'contains': {'error_code': '0000'}}]
+INFO - 2026-03-16 06:38:38,167 - assertions.py:45 -[assertions:contains_assert] - 字符串包含断言成功：预期结果【订单支付成功】,实际结果【订单支付成功】
+INFO - 2026-03-16 06:38:38,168 - assertions.py:45 -[assertions:contains_assert] - 字符串包含断言成功：预期结果【0000】,实际结果【0000】
+INFO - 2026-03-16 06:38:38,168 - assertions.py:198 -[assertions:assert_result] - 测试成功
+INFO - 2026-03-16 06:38:38,169 - conftest.py:22 -[conftest:start_test_and_end] - -------------接口测试结束--------------
