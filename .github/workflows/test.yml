@@ -224,7 +224,7 @@ jobs:
           retention-days: 30
 
       - name: Save trend data
-        if: always()
+        if: always() && hashFiles('report/trend_data.json') != ''
         uses: actions/cache/save@v4
         with:
           path: report/trend_data.json
